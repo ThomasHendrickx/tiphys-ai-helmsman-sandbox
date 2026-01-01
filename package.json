@@ -1,0 +1,11 @@
+{
+  "name": "toy-sandbox",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Toy sandbox project driven by the Tiphys M1 exit test. No dependencies on purpose.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\""
+  }
+}
