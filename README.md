@@ -28,4 +28,3 @@ only git, Node, and npm, and with no registry access.
 
 The stub payload appends its lines below. Each line records one exit-test
 run; the file is the change under test and carries no other meaning.
-exit-test drift line, to be reset by the next seed
