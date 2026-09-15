@@ -1,0 +1,15 @@
+{
+  "$comment": "THE DANGEROUS STATE, COMMITTED AS DATA. An adversarial reviewer pointed out that this tool's README described a red witness nobody could re-run: the buggy matcher existed in no commit, so the claim 'the suite goes five red against the old matcher' was an assertion about a thing the reader could not reach. The kernel solves this with witness/*.json, which carry the mutation as a find/replace pair. This is that shape. test/witness.test.js applies it, asserts the suite reddens, and restores.",
+  "id": "glob-matcher-chained-replace",
+  "behavior": "a directory glob matches at every depth, not just the first",
+  "file": "assurance-tier.mjs",
+  "$fileComment": "The mutation targets value-ratio.mjs; the field is set by the test.",
+  "dangerousState": {
+    "find": "export function matchGlob(pattern, path) {\n  let body = \"\";",
+    "replaceWith": "export function matchGlob(pattern, path) {\n  return new RegExp(`^${pattern.replace(/[.+^${}()|[\\]\\\\]/g, \"\\\\$&\").replace(/\\/\\*\\*$/g, \"(?:/.*)?\").replace(/\\*\\*\\//g, \"(?:.*/)?\").replace(/\\*\\*/g, \".*\").replace(/\\*/g, \"[^/]*\")}$`).test(path);\n}\nfunction matchGlobDead(pattern, path) {\n  let body = \"\";"
+  },
+  "expectedRed": [
+    "src/commands/doctor.ts",
+    "projects/sitrep/test/a.js"
+  ]
+}

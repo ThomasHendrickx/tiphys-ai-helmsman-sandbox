@@ -27,20 +27,26 @@ units       50 first-parent commits carrying a change
 
 lines changed
   value          40825    9.4%
-  assurance      68140   15.7%
-  overhead      324933   74.9%
+  assurance     307082   70.8%
+  overhead       85991   19.8%
 
-units touching each bucket
-  value             12   24.0% of units
-  assurance         15   30.0% of units
-  overhead          50  100.0% of units
-
-overhead-to-value ratio, by lines changed: 7.96
+overhead-to-value ratio, by lines changed: 2.11
 ```
 
-Read that as: **every unit that reached `main` carried paperwork, and fewer
-than a quarter of them carried anything a consumer receives.** DR-0027's
-window was not an outlier, it was the first time anyone counted.
+Read that as: **for every line of value, this repository wrote seven and a half
+lines of making-sure and two lines of paperwork.** The problem is not
+bureaucracy. It is that the assurance does not scale with what it protects, and
+that is what `assurance-tier.mjs` below is for.
+
+An earlier version of this README reported 74.9% overhead, because
+`delivery/review/**`, `delivery/verification/**` and `delivery/evidence/**`
+were classified as paperwork. They are not: a clean-room review is a test
+written in prose. An adversarial reviewer caught the shipped rules
+contradicting the rationale two sections down, and the correction moved
+239,000 lines from overhead to assurance and the ratio from 7.96 to 2.11. The
+old number is left here rather than deleted, because a measurement that
+silently changes by a factor of four is exactly the thing a reader should be
+able to see happening.
 
 ## The three buckets
 

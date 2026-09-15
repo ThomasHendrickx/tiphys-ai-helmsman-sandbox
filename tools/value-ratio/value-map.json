@@ -43,6 +43,18 @@
       ]
     },
     {
+      "$comment": "REVIEW AND EVIDENCE ARE ASSURANCE, NOT PAPERWORK, and this rule exists because the first version of this map got it wrong while the README claimed otherwise. A clean-room review, a delta verification and a captured gate bundle are what prove the value works; they are tests written in prose. Classifying them as overhead put them in the gated bucket and made reviewing less the cheapest way to pass, which is the exact failure the three-bucket split was introduced to prevent. Found by an adversarial reviewer checking the stated rationale against the shipped rules rather than believing it. A work history is NOT here: it records what an implementer did, which is neither the value nor a proof of it.",
+      "bucket": "assurance",
+      "match": [
+        "delivery/review/**",
+        "delivery/verification/**",
+        "delivery/evidence/**",
+        "**/delivery/review/**",
+        "**/delivery/verification/**",
+        "**/delivery/evidence/**"
+      ]
+    },
+    {
       "$comment": "Process paperwork at any depth. Before the value rules so a subject project's own delivery/ is not counted as delivered value.",
       "bucket": "overhead",
       "match": [

@@ -54,7 +54,17 @@ test("classification is first match wins and unmatched falls to the default", ()
     "assurance",
     "the assurance rule is listed first so a test inside a value tree stays assurance",
   );
-  assert.equal(classify(MAP, "delivery/review/arbitration-m3-p11.md"), "overhead");
+  assert.equal(
+    classify(MAP, "delivery/review/arbitration-m3-p11.md"),
+    "assurance",
+    "a review proves the value works, so it is assurance and not paperwork",
+  );
+  assert.equal(classify(MAP, "delivery/plan/kernel-plan-v1.md"), "overhead");
+  assert.equal(
+    classify(MAP, "delivery/work-history/m3-p1.md"),
+    "overhead",
+    "a work history records what was done, which is neither the value nor a proof of it",
+  );
   assert.equal(
     classify(MAP, "some/path/nobody/declared.txt"),
     "overhead",
