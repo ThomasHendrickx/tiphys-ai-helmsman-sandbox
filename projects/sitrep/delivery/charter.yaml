@@ -1,0 +1,86 @@
+# The sitrep charter. Validates against the Tiphys kernel's
+# schemas/charter.schema.json at kernel 0.1.0:
+#
+#   node bin/tiphys.ts validate --type charter \
+#     ../tiphys-ai-helmsman-sandbox/projects/sitrep/delivery/charter.yaml
+#
+# WHY THIS PROJECT EXISTS, stated here rather than in a README nobody opens.
+# sitrep is not a product. It is a SUBJECT: something small, real and boring
+# enough that the cost of delivering it through the Tiphys pipeline can be
+# measured against what it delivers. DR-0034 makes pulse the M4 pilot, and
+# pulse carries real financial data, so it is the wrong place to discover what
+# the process costs. This is that place.
+#
+# The design constraint that follows from being a subject: every phase must
+# have a SMALL, COUNTABLE value delta. If a phase's shipped diff is hard to
+# measure, the phase is wrong for this repository even if it would be right
+# for a product.
+kind: charter
+identity:
+  name: sitrep
+  repo: git@github.com:ThomasHendrickx/tiphys-ai-helmsman-sandbox.git
+  kernel-version-pin: 0.1.0
+# direct-pr rather than full, DELIBERATELY, and this is the load-bearing line
+# in the file. Running a subject at `full` would measure the full pipeline
+# against a toy and conclude, correctly and uselessly, that the pipeline costs
+# more than the toy is worth. The experiment worth running is the opposite one:
+# start at the cheapest declared mode, measure, and let the evidence say which
+# assurance the subject actually needed. assurance-modes.yaml's
+# no-undeclared-downgrade rule makes that an honest declaration rather than a
+# skipped step.
+delivery-mode: direct-pr
+assurance-tier: direct-pr
+yolo-permissions:
+  enabled: false
+  scope: []
+irreversible-decisions:
+  stack: Node 22 or later, plain JavaScript, no dependencies
+  language: JavaScript with ES modules
+  framework: none, and this is a decision rather than an omission
+  core-data-model: >-
+    One inventory report per invocation, computed fresh. Nothing is persisted
+    before phase 3, and phase 3's cache is a derived artefact that may be
+    deleted at any time without loss.
+  tenancy: none, it is a single-user command line tool
+  auth: none, it reads only paths the invoking user can already read
+  deployment-topology: none, it is invoked directly from a checkout
+product-intent: |
+  A command line tool that answers "what is in this tree" for a repository:
+  an inventory by file type, the git head and working-tree state, and a cache
+  so that a second run on an unchanged tree is cheap.
+
+  Success is that a person can run one command in an unfamiliar checkout and
+  get an answer they trust, and that a script can branch on the exit code.
+
+  Not in scope: anything that writes to the tree being measured, anything that
+  talks to a network, and any dependency.
+constraints:
+  - No dependencies, ever. The npm dependency list stays empty.
+  - Never write inside the tree being measured. The cache lives elsewhere.
+  - >-
+    Never open a path whose type has not been established. A tree walker meets
+    paths it did not create, and open(2) on a named pipe with no peer blocks in
+    the kernel, which no try/catch reaches.
+  - >-
+    An incomplete answer must not be reported as a complete one. A path that
+    could not be read is named, counted, and reflected in the exit code.
+escalation-contract:
+  stop-for:
+    - any irreversible choice the charter is silent on
+    - a change from a declared release verification to `none`
+    - >-
+      any proposal to add a dependency, which contradicts the first constraint
+      and is therefore never an implementer's call
+  route: >-
+    The orchestrator raises a decision record and notifies the owner
+    asynchronously; work on the affected phase stops.
+release-verification:
+  mode: reserved
+  note: >-
+    sitrep is not published. It is run from the checkout, so there is no
+    release to verify. This field is declared `reserved` rather than left out
+    because the schema requires a project to say which it is.
+retention:
+  work-history: projects/sitrep/delivery/work-history/
+  evidence: projects/sitrep/delivery/evidence/
+  tuition: projects/sitrep/delivery/tuition/

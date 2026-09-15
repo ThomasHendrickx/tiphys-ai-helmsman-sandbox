@@ -1,0 +1,32 @@
+{
+  "$comment": "THE CLASSIFICATION IS DATA, NOT CODE. Which paths count as shipped value is a PROJECT question, not a kernel one (Tiphys DR-0029: the kernel owns orchestration, the project supplies its own definition of done). So value-ratio.mjs ships the mechanism and every project ships one of these. RULES ARE ORDERED AND FIRST MATCH WINS, which is why the order below is load-bearing rather than tidy: the named root files come first so that a later broad `*.md` rule cannot swallow AGENTS.md, assurance comes before value so that a test living inside a value tree stays assurance, and paperwork comes before the value directories so that a subject project's own delivery/ folder is not counted as the thing it delivers. The default bucket is deliberately `overhead` rather than `value`, because an unclassified path is one nobody claimed, and counting it as value is the flattering error.",
+  "version": 1,
+  "default": "overhead",
+  "buckets": {
+    "value": "Changes to paths the consumer of this project actually receives. For a library or CLI that is the shipped source and the declared package contents.",
+    "assurance": "Changes whose purpose is to prove the value paths work: tests, witnesses, gate scripts, CI configuration, measurement tools. Not waste, and deliberately NOT gated, because gating it makes reviewing less the cheapest way to pass.",
+    "overhead": "Everything else. Process paperwork, plans, reviews, evidence, decision records, agent rules. This is the bucket the budget constrains."
+  },
+  "rules": [
+    {
+      "$comment": "Named root files that ship, listed first so the paperwork rule's `*.md` cannot claim AGENTS.md.",
+      "bucket": "value",
+      "match": ["package.json", "package-lock.json", "AGENTS.md", "LICENSE", "gate-registry.yaml", "gates.manifest.json", "assurance-modes.yaml", "role-model-config.yaml", "tsconfig.json", "tsconfig.src.json", "tsconfig.test.json"]
+    },
+    {
+      "$comment": "Proof that the value paths work. Before the value rules so a test inside a value tree stays assurance.",
+      "bucket": "assurance",
+      "match": ["test/**", "tests/**", "witness/**", "scripts/**", ".github/**", "tools/**", "sandbox/**", "**/test/**", "**/tests/**", "**/*.test.js", "**/*.test.ts"]
+    },
+    {
+      "$comment": "Process paperwork at any depth. Before the value rules so a subject project's own delivery/ is not counted as delivered value.",
+      "bucket": "overhead",
+      "match": ["delivery/**", "**/delivery/**", "docs/**", "**/docs/**", "CLAUDE.md", ".claude/**", "*.md"]
+    },
+    {
+      "$comment": "What a consumer receives.",
+      "bucket": "value",
+      "match": ["src/**", "bin/**", "lib/**", "projects/**", "schemas/**", "roles/**", "templates/**", "checklists/**", "tuition/**"]
+    }
+  ]
+}
