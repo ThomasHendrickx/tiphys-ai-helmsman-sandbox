@@ -11,6 +11,11 @@ Against the Tiphys kernel's whole history, measured 2026-09-15 at `3b40118`:
 7.96 overhead lines per value line, and 50 of 50 merged units carried
 paperwork while 12 carried anything a consumer receives.
 
+Alongside it, `assurance-tier.mjs` answers the question the ratio raises but
+cannot settle: how much making-sure has THIS change earned? Size buys coverage,
+impact buys depth, and thirty-four of the kernel's fifty merged units have a
+subject size of zero.
+
 ## `projects/sitrep/`
 
 The subject. A small, boring, dependency-free CLI with phase 1 delivered as a

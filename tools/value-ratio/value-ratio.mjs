@@ -173,6 +173,7 @@ export function measure(repo, range, map) {
   const lines = { value: 0, assurance: 0, overhead: 0 };
   const touched = { value: 0, assurance: 0, overhead: 0 };
   const files = { value: 0, assurance: 0, overhead: 0 };
+  const paths = new Set();
   let units = 0;
   let binaryPaths = 0;
   let current = null;
@@ -205,6 +206,7 @@ export function measure(repo, range, map) {
       ? rawPath.replace(/\{([^}]*) => ([^}]*)\}/, "$2").replace(/^.*\s=>\s/, "").trim()
       : rawPath;
     const bucket = classify(map, path);
+    paths.add(path);
     current.any = true;
     current.touched[bucket] = true;
     files[bucket] += 1;
@@ -216,7 +218,11 @@ export function measure(repo, range, map) {
   }
   flush();
 
-  return { lines, touched, files, units, binaryPaths };
+  // `paths` is the DISTINCT set of paths the range touched, sorted so two runs
+  // over one range compare byte for byte. assurance-tier.mjs reads it to apply
+  // the high-impact floor, which needs the paths themselves and not their
+  // counts.
+  return { lines, touched, files, units, binaryPaths, paths: [...paths].sort() };
 }
 
 /**

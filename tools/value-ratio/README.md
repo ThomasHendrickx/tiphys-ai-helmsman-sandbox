@@ -83,7 +83,7 @@ Append only. `evidence` is a pointer, never prose. A malformed row is reported
 and counted as skipped, never silently dropped, because a ledger that quietly
 loses rows reports a better ratio than the truth.
 
-The seeded ledger currently reads 3,289,185 tokens, 100% overhead, 0 value.
+The seeded ledger currently reads 4,487,517 tokens, 100% overhead, 0 value.
 That is this review measuring itself, and it is the honest number.
 
 ## The budget
@@ -93,6 +93,56 @@ That is this review measuring itself, and it is the honest number.
 A range with no value at all is **not** within budget, however generous the
 number. Reporting one would make the emptiest possible history the easiest to
 satisfy.
+
+## assurance-tier: how much making-sure has this change earned?
+
+The ratio says the process overreacts. It does not say what to do instead.
+`assurance-tier.mjs` does, and the rule is one line:
+
+**Size buys coverage. Impact buys depth.**
+
+Those are different things, and conflating them is why a process overreacts. A
+large surface can break in a corner nobody looked at, so it needs breadth. A
+change that matters can be three lines and still lose money, so it needs depth.
+Neither substitutes for the other, which is why this is a two-by-two.
+
+| | low impact | high impact |
+|---|---|---|
+| **zero size** | none. It is paperwork. | none. There is no subject. |
+| **small** | `local-only`. A quick pass. | `full`. Depth, not breadth. |
+| **large** | `direct-pr`. The gates ARE the coverage. | `full`. Both contracts, both lenses. |
+
+```
+node tools/value-ratio/assurance-tier.mjs --repo <dir> --range <rev> --impact <low|high>
+```
+
+**The mode names are not new.** `full`, `direct-pr` and `local-only` are the
+three modes the Tiphys blueprint already declares and `assurance-modes.yaml`
+already defines. Tiphys did not lack assurance tiers. It lacked a rule for
+picking one, so everything got `full` and the process spent as though every
+change mattered equally.
+
+**The zero tier is not an edge case.** Measured over the kernel's 50
+first-parent units: thirty-four have a subject size of zero. They changed no
+value path and no assurance path. Median subject size is 0; p75 is 338; p90 is
+3408. That is what the overreaction looks like from underneath, and it is the
+cheapest thing to stop, because a script can see it.
+
+**Size is computed, impact is declared, and the declaration has a floor.** Size
+comes from the diff and cannot be argued with. Impact is a judgement, so it is
+declared before the work, where it cannot be retrofitted to justify a review
+that was skipped. `highImpactPaths` in the map is the floor: a change touching
+one of them may not be called low impact, and the command refuses, naming the
+path, rather than warning.
+
+**Overhead is excluded from size, in both directions.** Writing a longer work
+history cannot buy a heavier review, and writing a shorter plan cannot dodge
+one. That invariant is asserted directly in `test/tier.test.js`, and the suite
+goes red under two structurally different mutations of it.
+
+The threshold of 500 subject lines is **derived, not chosen**: it sits between
+the kernel's own p75 and p90, so it separates the ordinary phase from the
+genuinely large one rather than splitting the bulk of the history.
 
 ## What it does not measure
 
@@ -107,7 +157,7 @@ the tests.
 node --test "tools/value-ratio/test/*.test.js"
 ```
 
-Measured 2026-09-15 on node v22.22.2: 10 tests, 10 pass, 0 fail, 0 skipped.
+Measured 2026-09-15 on node v22.22.2: 16 tests, 16 pass, 0 fail, 0 skipped.
 
 The depth cases in `test/match.test.js` are the point of that file. The first
 matcher this tool shipped matched `src/**` against `src/cli.ts` and not against

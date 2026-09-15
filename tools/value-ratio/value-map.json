@@ -11,22 +11,79 @@
     {
       "$comment": "Named root files that ship, listed first so the paperwork rule's `*.md` cannot claim AGENTS.md.",
       "bucket": "value",
-      "match": ["package.json", "package-lock.json", "AGENTS.md", "LICENSE", "gate-registry.yaml", "gates.manifest.json", "assurance-modes.yaml", "role-model-config.yaml", "tsconfig.json", "tsconfig.src.json", "tsconfig.test.json"]
+      "match": [
+        "package.json",
+        "package-lock.json",
+        "AGENTS.md",
+        "LICENSE",
+        "gate-registry.yaml",
+        "gates.manifest.json",
+        "assurance-modes.yaml",
+        "role-model-config.yaml",
+        "tsconfig.json",
+        "tsconfig.src.json",
+        "tsconfig.test.json"
+      ]
     },
     {
       "$comment": "Proof that the value paths work. Before the value rules so a test inside a value tree stays assurance.",
       "bucket": "assurance",
-      "match": ["test/**", "tests/**", "witness/**", "scripts/**", ".github/**", "tools/**", "sandbox/**", "**/test/**", "**/tests/**", "**/*.test.js", "**/*.test.ts"]
+      "match": [
+        "test/**",
+        "tests/**",
+        "witness/**",
+        "scripts/**",
+        ".github/**",
+        "tools/**",
+        "sandbox/**",
+        "**/test/**",
+        "**/tests/**",
+        "**/*.test.js",
+        "**/*.test.ts"
+      ]
     },
     {
       "$comment": "Process paperwork at any depth. Before the value rules so a subject project's own delivery/ is not counted as delivered value.",
       "bucket": "overhead",
-      "match": ["delivery/**", "**/delivery/**", "docs/**", "**/docs/**", "CLAUDE.md", ".claude/**", "*.md"]
+      "match": [
+        "delivery/**",
+        "**/delivery/**",
+        "docs/**",
+        "**/docs/**",
+        "CLAUDE.md",
+        ".claude/**",
+        "*.md"
+      ]
     },
     {
       "$comment": "What a consumer receives.",
       "bucket": "value",
-      "match": ["src/**", "bin/**", "lib/**", "projects/**", "schemas/**", "roles/**", "templates/**", "checklists/**", "tuition/**"]
+      "match": [
+        "src/**",
+        "bin/**",
+        "lib/**",
+        "projects/**",
+        "schemas/**",
+        "roles/**",
+        "templates/**",
+        "checklists/**",
+        "tuition/**"
+      ]
     }
-  ]
+  ],
+  "subjectSizeThreshold": 500,
+  "$subjectSizeComment": "SUBJECT SIZE is value plus assurance lines, and OVERHEAD IS DELIBERATELY EXCLUDED. The size axis exists to ask how much surface a change presents, and paperwork presents none. Excluding it also closes the obvious gaming route in the other direction: writing a longer work history cannot push a change into a heavier assurance tier, and cannot pull it out of one. THE THRESHOLD IS DERIVED, NOT CHOSEN. Measured over the Tiphys kernel's 50 first-parent units at 3b40118: subject size p25 0, median 0, p75 338, p90 3408. Thirty-four of the fifty have subject size ZERO, which is what the zero tier exists for. 500 sits between p75 and p90, so it separates the ordinary phase from the genuinely large one rather than splitting the bulk of the history.",
+  "highImpactPaths": {
+    "$comment": "THE FLOOR UNDER A DECLARED IMPACT. Impact is a judgement and is declared before the work, but a declaration nothing can contradict is not a declaration. A change touching any of these paths MAY NOT be declared low impact, and the selector refuses rather than warns. The list is per project, like everything else in this file, and names the paths where being wrong is expensive rather than the paths that are important.",
+    "match": [
+      "src/exec/**",
+      "src/lock.ts",
+      "src/gates/**",
+      "scripts/license-gate.mjs",
+      "scripts/release-verify.sh",
+      ".github/workflows/release.yml",
+      "src/teardown.ts",
+      "src/pool.ts"
+    ]
+  }
 }
