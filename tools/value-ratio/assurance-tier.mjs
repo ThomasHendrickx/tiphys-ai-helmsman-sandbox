@@ -12,29 +12,29 @@
  * someone asking what happens when it is wrong. Neither substitutes for the
  * other, which is why the tiers are a two-by-two and not a single dial.
  *
- *              | low impact                  | high impact
- *   -----------+-----------------------------+---------------------------
- *   zero size  | none. It is paperwork.      | (cannot occur: see below)
- *   small      | local-only. A quick pass.   | full. Depth, not breadth.
- *   large      | direct-pr. Gates ARE the    | full. Both contracts, both
- *              | coverage. No adversarial    | lenses. This is the case the
- *              | layer, because there is     | full pipeline was designed
- *              | little to be adversarial    | for and the one where it
- *              | about.                      | pays.
+ * EVERY CHANGE IS REVIEWED. What tiers is the number of FIX ROUNDS, meaning
+ * back-and-forths between the clean-room reviewer and the implementer.
  *
- * THE MODE NAMES ARE NOT NEW. `full`, `direct-pr` and `local-only` are the
- * three modes the Tiphys blueprint already declares and `assurance-modes.yaml`
- * already defines, with a check that recomputes each mode's declared skips
- * against `full` in three directions. Tiphys did not lack assurance tiers. It
- * lacked a rule for PICKING one, so every change got `full` by default and the
- * process spent like the change always mattered. This is only the selector.
+ *              | low impact        | high impact
+ *   -----------+-------------------+--------------------
+ *   zero size  | 1 round           | 1 round
+ *   small      | 1 round           | 2 rounds
+ *   large      | 2 rounds          | 3 rounds
  *
- * WHAT THE ZERO TIER IS FOR, and it is not an edge case. Measured over the
+ * One is the floor, three is the ceiling, and the cap is a cap rather than a
+ * target. This is owner decision DR-0035, and it replaces an earlier version
+ * of this tool that selected an assurance MODE and could select `none`. That
+ * version was wrong in a way worth recording: it would have let a change merge
+ * unlooked-at, and it silently narrowed a condition of the DR-0012 grant,
+ * which is owner-reserved. Tiering the ROUNDS instead leaves DR-0012's
+ * dual-review condition untouched, because the first review still always
+ * happens.
+ *
+ * THE SIZE DISTRIBUTION IS STILL WHY THIS IS WORTH DOING. Measured over the
  * Tiphys kernel's 50 first-parent units: THIRTY-FOUR have a subject size of
- * zero. They changed no value path and no assurance path. They are plans,
- * reviews, decision records and status updates. Sending those through an
- * adversarial pipeline is the single largest source of the imbalance, and it
- * is also the easiest to stop, because a script can see it.
+ * zero. They changed no value path and no assurance path. They still get a
+ * round, and under this rule they get exactly one, where today the process
+ * offers them the same machinery it offers a concurrency rewrite.
  *
  * SIZE IS COMPUTED, IMPACT IS DECLARED, AND THE DECLARATION HAS A FLOOR.
  * Size comes from the diff and cannot be argued with. Impact is a judgement,
@@ -67,13 +67,39 @@ import { matchGlob, measure } from "./value-ratio.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const EX_USAGE = 2;
 
+/**
+ * THE BUDGET IS A CAP ON FIX ROUNDS. EVERY CHANGE GETS AT LEAST ONE.
+ *
+ * Owner decision DR-0035: every change is reviewed, and what tiers is the
+ * number of back-and-forths between the clean-room reviewer and the
+ * implementer. One round is the floor and there is no zero.
+ *
+ * WHY A CAP RATHER THAN A TARGET, and the number that settles it: a throughput
+ * analysis of M1 measured sixteen completed fix rounds, thirteen of which were
+ * re-reviewed, and TWELVE OF THOSE THIRTEEN produced a new finding
+ * attributable to the round itself. A fix round is a change, and a change
+ * needs reviewing, so round N+1 largely exists to check round N. Rounds are
+ * not monotonically improving and a budget is not stinginess.
+ *
+ * WHAT HAPPENS AT THE CAP IS NOT MORE ROUNDS. DR-0016 already decided it: a
+ * fresh implementer plus a third review contract, dispatched immediately, with
+ * the owner notified asynchronously. The property being protected is that
+ * something DIFFERENT happens, and the measured evidence is that the fresh
+ * implementer, not the owner decision, is the half that worked.
+ *
+ * THE CEILING OF THREE IS DERIVED. DR-0012:34 already caps a delegated merge
+ * at "more than two fix rounds after its first dual review", so two is the
+ * repository's own existing constant and this generalises it rather than
+ * inventing a number. Observed: the phases that took one round shipped without
+ * incident, and the recorded disasters ran to four, five, six and ten.
+ */
 export const TIERS = {
-  "zero/low": { mode: "none", why: "no value and no assurance path changed. This is paperwork, and paperwork is checked by the byte and citation gates, not by a reviewer." },
-  "zero/high": { mode: "none", why: "no value and no assurance path changed, so there is no subject to review however the impact was declared." },
-  "small/low": { mode: "local-only", why: "small surface, low consequence. A quick pass: implement, orchestrator diff review, local fast-forward." },
-  "small/high": { mode: "full", why: "small surface, high consequence. Depth rather than breadth: the adversarial lens and a second model family earn their cost here even though the diff is short." },
-  "large/low": { mode: "direct-pr", why: "large surface, low consequence. The gates ARE the coverage. No adversarial layer, because there is little to be adversarial about." },
-  "large/high": { mode: "full", why: "large surface and high consequence. Both review contracts, both lenses. This is the case the full pipeline was designed for and the one where it pays." },
+  "zero/low": { rounds: 1, why: "no value and no assurance path changed, so there is nothing to iterate on. One round, and if it finds nothing that is the answer." },
+  "zero/high": { rounds: 1, why: "no value and no assurance path changed. However the impact was declared there is no subject to iterate on." },
+  "small/low": { rounds: 1, why: "small surface, low consequence. One round is the floor and it is also the ceiling here." },
+  "small/high": { rounds: 2, why: "small surface, high consequence. The second round exists to check the first round's fix, which is where this repository measured twelve of thirteen new findings coming from." },
+  "large/low": { rounds: 2, why: "large surface, low consequence. One round cannot both walk a large surface and check its own fix." },
+  "large/high": { rounds: 3, why: "large surface and high consequence. Three is the ceiling, and reaching it means the DR-0016 path rather than a fourth round." },
 };
 
 export function sizeBucket(lines, threshold) {
@@ -145,7 +171,7 @@ export function selectTier(options) {
     declaredImpact: impact,
     floorViolations: violations,
     refused,
-    mode: refused ? null : tier.mode,
+    rounds: refused ? null : tier.rounds,
     why: tier.why,
   };
 }
@@ -167,8 +193,11 @@ function render(r) {
     for (const path of r.floorViolations) out.push(`  ${path}`);
     return out.join("\n");
   }
-  out.push(`ASSURANCE     ${r.mode}`);
+  out.push(`FIX ROUNDS    ${r.rounds} (a cap, not a target; one is the floor and every change is reviewed)`);
   out.push(`              ${r.why}`);
+  out.push("");
+  out.push("At the cap, DR-0016 applies: a fresh implementer and a third review");
+  out.push("contract, not a further round.");
   return out.join("\n");
 }
 

@@ -100,39 +100,44 @@ A range with no value at all is **not** within budget, however generous the
 number. Reporting one would make the emptiest possible history the easiest to
 satisfy.
 
-## assurance-tier: how much making-sure has this change earned?
+## assurance-tier: how many fix rounds has this change earned?
 
 The ratio says the process overreacts. It does not say what to do instead.
-`assurance-tier.mjs` does, and the rule is one line:
+`assurance-tier.mjs` does. Per Tiphys owner decision DR-0035:
 
-**Size buys coverage. Impact buys depth.**
+**Every change is reviewed. What tiers is the number of fix rounds.**
 
-Those are different things, and conflating them is why a process overreacts. A
-large surface can break in a corner nobody looked at, so it needs breadth. A
-change that matters can be three lines and still lose money, so it needs depth.
-Neither substitutes for the other, which is why this is a two-by-two.
+A fix round is one back-and-forth between the clean-room reviewer and the
+implementer. Size buys coverage and impact buys depth, but both are spent on
+ITERATION, never on whether a review happens at all.
 
 | | low impact | high impact |
 |---|---|---|
-| **zero size** | none. It is paperwork. | none. There is no subject. |
-| **small** | `local-only`. A quick pass. | `full`. Depth, not breadth. |
-| **large** | `direct-pr`. The gates ARE the coverage. | `full`. Both contracts, both lenses. |
+| **zero size** | 1 round | 1 round |
+| **small** | 1 round | 2 rounds |
+| **large** | 2 rounds | 3 rounds |
+
+**The cap is a cap, not a target**, and the number justifying it is measured: of
+sixteen fix rounds in Tiphys's M1, thirteen were re-reviewed and TWELVE of
+those thirteen produced a new finding attributable to the round itself. A fix
+round is a change, and a change needs reviewing, so round N+1 largely exists to
+check round N. At the cap a fresh implementer and a third review contract
+apply, not a fourth round.
+
+An earlier version of this tool tiered the assurance MODE and could select
+`none`. That was wrong twice over: it would have let a change merge
+unlooked-at, and it silently narrowed a condition of a merge-authority grant
+that was not the tool's to narrow.
 
 ```
 node tools/value-ratio/assurance-tier.mjs --repo <dir> --range <rev> --impact <low|high>
 ```
 
-**The mode names are not new.** `full`, `direct-pr` and `local-only` are the
-three modes the Tiphys blueprint already declares and `assurance-modes.yaml`
-already defines. Tiphys did not lack assurance tiers. It lacked a rule for
-picking one, so everything got `full` and the process spent as though every
-change mattered equally.
-
-**The zero tier is not an edge case.** Measured over the kernel's 50
+**The zero-size row is not an edge case.** Measured over the kernel's 50
 first-parent units: thirty-four have a subject size of zero. They changed no
 value path and no assurance path. Median subject size is 0; p75 is 338; p90 is
-3408. That is what the overreaction looks like from underneath, and it is the
-cheapest thing to stop, because a script can see it.
+3408. Those still get a round, and under this rule exactly one, where today the
+process offers them the same machinery it offers a concurrency rewrite.
 
 **Size is computed, impact is declared, and the declaration has a floor.** Size
 comes from the diff and cannot be argued with. Impact is a judgement, so it is
@@ -143,8 +148,10 @@ path, rather than warning.
 
 **Overhead is excluded from size, in both directions.** Writing a longer work
 history cannot buy a heavier review, and writing a shorter plan cannot dodge
-one. That invariant is asserted directly in `test/tier.test.js`, and the suite
-goes red under two structurally different mutations of it.
+one. That invariant is asserted directly in `test/tier.test.js`, as are the
+floor of one and the ceiling of three, and the suite goes red under four
+structurally different mutations: counting overhead in the subject, defanging
+the impact floor, dropping a cell to zero, and raising a cell past three.
 
 The threshold of 500 subject lines is **derived, not chosen**: it sits between
 the kernel's own p75 and p90, so it separates the ordinary phase from the
@@ -163,7 +170,7 @@ the tests.
 node --test "tools/value-ratio/test/*.test.js"
 ```
 
-Measured 2026-09-15 on node v22.22.2: 16 tests, 16 pass, 0 fail, 0 skipped.
+Measured 2026-09-15 on node v22.22.2: 18 tests, 18 pass, 0 fail, 0 skipped.
 
 The depth cases in `test/match.test.js` are the point of that file. The first
 matcher this tool shipped matched `src/**` against `src/cli.ts` and not against

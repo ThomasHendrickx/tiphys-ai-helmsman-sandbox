@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { impactFloorViolations, selectTier, sizeBucket } from "../assurance-tier.mjs";
+import { TIERS, impactFloorViolations, selectTier, sizeBucket } from "../assurance-tier.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TOOL = join(HERE, "..", "assurance-tier.mjs");
@@ -73,7 +73,7 @@ test("overhead volume cannot move the tier in either direction", () => {
     const fat = tier(b.root, "", "low");
     assert.equal(lean.subjectSize, fat.subjectSize, "identical subjects");
     assert.equal(lean.sizeBucket, fat.sizeBucket);
-    assert.equal(lean.mode, fat.mode);
+    assert.equal(lean.rounds, fat.rounds);
     assert.ok(
       fat.overheadLines - lean.overheadLines >= 50000,
       `the overhead is real and is reported: ${lean.overheadLines} against ${fat.overheadLines}`,
@@ -85,19 +85,19 @@ test("overhead volume cannot move the tier in either direction", () => {
   }
 });
 
-test("the two-by-two selects the mode, and paperwork selects none", () => {
+test("the two-by-two selects a fix-round budget, and one is the floor everywhere", () => {
   const r = repo();
   const paper = r.commit({ "delivery/plan.md": "p\n".repeat(400) }, "paperwork only");
   const small = r.commit({ "src/small.js": "s\n".repeat(50) }, "small subject");
   const large = r.commit({ "src/big.js": "b\n".repeat(900) }, "large subject");
   const only = (sha) => `${sha}~1..${sha}`;
   try {
-    assert.equal(tier(r.root, only(paper), "low").mode, "none", "paperwork needs no reviewer");
-    assert.equal(tier(r.root, only(paper), "high").mode, "none", "and no declaration changes that");
-    assert.equal(tier(r.root, only(small), "low").mode, "local-only", "small and low is a quick pass");
-    assert.equal(tier(r.root, only(small), "high").mode, "full", "small and high buys DEPTH");
-    assert.equal(tier(r.root, only(large), "low").mode, "direct-pr", "large and low buys COVERAGE via the gates");
-    assert.equal(tier(r.root, only(large), "high").mode, "full", "large and high buys both");
+    assert.equal(tier(r.root, only(paper), "low").rounds, 1, "paperwork still gets a round");
+    assert.equal(tier(r.root, only(paper), "high").rounds, 1, "and no declaration changes that");
+    assert.equal(tier(r.root, only(small), "low").rounds, 1, "small and low is the floor");
+    assert.equal(tier(r.root, only(small), "high").rounds, 2, "small and high buys a second round for the fix");
+    assert.equal(tier(r.root, only(large), "low").rounds, 2, "large and low: one round cannot walk the surface and check its own fix");
+    assert.equal(tier(r.root, only(large), "high").rounds, 3, "large and high reaches the ceiling");
   } finally {
     rmSync(r.root, { recursive: true, force: true });
   }
@@ -118,7 +118,7 @@ test("a declared low impact is refused on a path the map puts a floor under", ()
     const dir = tier(r.root, only(gates), "low");
     assert.equal(dir.refused, true);
     assert.deepEqual(dir.floorViolations, ["src/gates/run.js"], "the refusal names what triggered it");
-    assert.equal(dir.mode, null);
+    assert.equal(dir.rounds, null);
 
     const file = tier(r.root, only(lock), "low");
     assert.equal(file.refused, true, "a single-file floor glob fires too");
@@ -127,6 +127,20 @@ test("a declared low impact is refused on a path the map puts a floor under", ()
     assert.equal(tier(r.root, only(gates), "high").refused, false, "declaring it high is the way through");
   } finally {
     rmSync(r.root, { recursive: true, force: true });
+  }
+});
+
+/**
+ * DR-0035's floor, asserted directly rather than left to follow from the table.
+ * A later editor adding a cell, or tuning a number down, must trip this.
+ */
+test("no cell of the table is ever zero, and none exceeds the ceiling of three", () => {
+  const values = Object.values(TIERS).map((t) => t.rounds);
+  assert.equal(values.length, 6, "six cells: three size buckets by two impacts");
+  for (const [key, tier] of Object.entries(TIERS)) {
+    assert.ok(Number.isInteger(tier.rounds), `${key} must be a whole number of rounds`);
+    assert.ok(tier.rounds >= 1, `${key} would let a change merge unreviewed, which DR-0035 forbids`);
+    assert.ok(tier.rounds <= 3, `${key} exceeds the ceiling; past it DR-0016 applies, not a further round`);
   }
 });
 
